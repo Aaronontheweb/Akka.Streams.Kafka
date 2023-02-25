@@ -41,6 +41,7 @@ namespace SimpleConsumer
                 await Task.Delay(TimeSpan.FromSeconds(ThreadLocalRandom.Current.Next(1, 15)));
                 _log.Info(message);
                 Context.Stop(Self); // termninate when finished
+                Sender.Tell("complete");
             });
         }
     }
@@ -65,10 +66,13 @@ namespace SimpleConsumer
             var subscription = Subscriptions.Topics("akka100");
 
             KafkaConsumer.PlainSource(consumerSettings, subscription)
-                .RunForeach(result =>
+                .SelectAsyncUnordered(100, async result =>
                 {
-                    actor.Tell($"Consumer: {result.Topic}/{result.Partition} {result.Offset}: {result.Message.Value}");
-                }, materializer);
+                    var r = await actor.Ask<string>(
+                        $"Consumer: {result.Topic}/{result.Partition} {result.Offset}: {result.Message.Value}");
+                    return r;
+                })
+                .RunWith(Sink.Ignore<string>(), materializer);
 
             await system.WhenTerminated;
         }
