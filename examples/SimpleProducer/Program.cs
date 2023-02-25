@@ -32,7 +32,7 @@ namespace SimpleProducer
             
             Source
                 .Cycle(() => Enumerable.Range(1, 1000).GetEnumerator())
-                .Throttle(1, TimeSpan.FromMilliseconds(200), 1, ThrottleMode.Shaping)
+               // .Throttle(1, TimeSpan.FromMilliseconds(200), 1, ThrottleMode.Shaping)
                 .Select(c => c.ToString())
                 .Select(elem => ProducerMessage.Single(new ProducerRecord<string, string>("akka100", $"key-{elem}", elem)))
                 .Via(KafkaProducer.FlexiFlow<string, string, NotUsed>(producerSettings))
