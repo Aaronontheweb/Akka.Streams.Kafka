@@ -119,9 +119,7 @@ namespace Akka.Streams.Kafka.Stages.Consumers.Actors
         // This is RebalanceListener.OnPartitionAssigned on JVM
         private void PartitionsAssignedHandler(IImmutableSet<TopicPartition> partitions)
         {
-            var assignment = _consumer.Assignment;
-            var partitionsToPause = partitions.Where(p => assignment.Contains(p)).ToImmutableList();
-            PausePartitions(partitionsToPause);
+            PausePartitions(partitions);
             
             _commitRefreshing.AssignedPositions(partitions, _consumer, _settings.PositionTimeout);
 
@@ -671,7 +669,7 @@ namespace Akka.Streams.Kafka.Stages.Consumers.Actors
             }
         }
 
-        private void PausePartitions(IImmutableList<TopicPartition> partitions)
+        private void PausePartitions(IReadOnlyCollection<TopicPartition> partitions)
         {
             if (partitions.Count == 0)
                 return;
@@ -682,7 +680,7 @@ namespace Akka.Streams.Kafka.Stages.Consumers.Actors
             _resumedPartitions = _resumedPartitions.Except(partitions);
         }
 
-        private void ResumePartitions(IImmutableList<TopicPartition> partitions)
+        private void ResumePartitions(IReadOnlyCollection<TopicPartition> partitions)
         {
             if (partitions.Count == 0)
                 return;
