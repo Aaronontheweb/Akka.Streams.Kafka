@@ -380,7 +380,7 @@ namespace Akka.Streams.Kafka.Stages.Consumers.Abstract
 
         private void PerformShutdown(Exception ex)
         {
-            if (ex is { } and not SubscriptionWithCancelException.NonFailureCancellation)
+            if (ex is not null and not SubscriptionWithCancelException.NonFailureCancellation)
                 Log.Info(ex, $"{nameof(SubSourceLogic<K, V, TMessage>)} was shutdown due to exception");
             
             SetKeepGoing(true);
@@ -615,7 +615,7 @@ namespace Akka.Streams.Kafka.Stages.Consumers.Abstract
 
                     public override void PerformShutdown(Exception ex)
                     {
-                        _debugLog("#{0} Completing SubSource for partition {1}", new object[] { _actorNumber, _topicPartition });
+                        _debugLog("#{0} Completing SubSource for partition {1}", [_actorNumber, _topicPartition]);
                         _completeStage(ex);
                     }
                 }

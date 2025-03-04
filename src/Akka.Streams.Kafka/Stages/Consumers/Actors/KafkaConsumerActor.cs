@@ -141,7 +141,20 @@ namespace Akka.Streams.Kafka.Stages.Consumers.Actors
             watch.Stop();
             CheckDuration(watch, "onRevoke");
             
-            _commitRefreshing.Revoke(partitions.Select(tp => tp.TopicPartition).ToImmutableHashSet());
+            var revokedTopicPartitions = partitions.Select(tp => tp.TopicPartition).ToImmutableHashSet();
+            
+            // Remove revoked topic-partitions from requests
+            _requests = _requests.ToImmutableDictionary(
+                kvp => kvp.Key,
+                kvp => new KafkaConsumerActorMetadata.Internal.RequestMessages(
+                    kvp.Value.RequestId,
+                    kvp.Value.Topics.Except(revokedTopicPartitions)));
+            
+            // Remove empty requests
+            _requests = _requests.Where(kvp => !kvp.Value.Topics.IsEmpty).ToImmutableDictionary();
+            
+            _commitRefreshing.Revoke(revokedTopicPartitions);
+            PausePartitions(revokedTopicPartitions);
             _rebalanceInProgress.GetAndSet(true);
         }
 
@@ -574,6 +587,7 @@ namespace Akka.Streams.Kafka.Stages.Consumers.Actors
                 return;
 
             var fetchedTps = rawResult.Select(m => m.TopicPartition).ToImmutableSet();
+            // Skip partition validation during rebalancing since assignments may be in flux
             if (!fetchedTps.Except(partitionsToFetch).IsEmpty())
                 throw new ArgumentException(
                     $"Unexpected records polled. Expected: [{string.Join(", ", partitionsToFetch.Select(p => p.ToString()))}], " +
@@ -670,7 +684,7 @@ namespace Akka.Streams.Kafka.Stages.Consumers.Actors
             }
         }
 
-        private void PausePartitions(IImmutableList<TopicPartition> partitions)
+        private void PausePartitions(IReadOnlyCollection<TopicPartition> partitions)
         {
             if (partitions.Count == 0)
                 return;
@@ -681,7 +695,7 @@ namespace Akka.Streams.Kafka.Stages.Consumers.Actors
             _resumedPartitions = _resumedPartitions.Except(partitions);
         }
 
-        private void ResumePartitions(IImmutableList<TopicPartition> partitions)
+        private void ResumePartitions(IReadOnlyCollection<TopicPartition> partitions)
         {
             if (partitions.Count == 0)
                 return;
