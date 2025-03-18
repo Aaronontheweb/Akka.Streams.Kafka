@@ -135,8 +135,7 @@ namespace Akka.Streams.Kafka.Stages
 
         protected override void PostSend(IEnvelope<K, V, TPassThrough> msg)
         {
-            var marker = msg.PassThrough as PartitionOffsetCommittedMarker;
-            if (marker != null)
+            if (msg.PassThrough is PartitionOffsetCommittedMarker marker)
                 _batchOffsets = _batchOffsets.Updated(marker);
         }
 
