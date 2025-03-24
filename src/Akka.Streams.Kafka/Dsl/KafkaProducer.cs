@@ -12,6 +12,7 @@ using Akka.Streams.Kafka.Extensions;
 using Akka.Streams.Kafka.Messages;
 using Akka.Streams.Kafka.Settings;
 using Akka.Streams.Kafka.Stages;
+using Akka.Streams.Kafka.Stages.Producers;
 using Confluent.Kafka;
 
 namespace Akka.Streams.Kafka.Dsl;
@@ -225,6 +226,10 @@ public static class KafkaProducer
             .AsFlowWithContext<IEnvelope<K, V, NotUsed>, C, IResults<K, V, C>, C, NotUsed, IEnvelope<K, V, C>>(
                 (env, c) => env.WithPassThrough(c),
                 res => res.PassThrough);
+
+    public static Sink<IEnvelope<K, V, ICommittable>, Task<Done>> CommittableSink<K, V>(
+        ProducerSettings<K, V> producerSettings, CommitterSettings committerSettings) =>
+        Sink.FromGraph(new CommittingProducerSinkStage<K,V, IEnvelope<K,V, ICommittable>>(producerSettings, committerSettings));
 
     /// <summary>
     /// API IS FOR INTERNAL USAGE: see https://github.com/akkadotnet/Akka.Streams.Kafka/issues/85
